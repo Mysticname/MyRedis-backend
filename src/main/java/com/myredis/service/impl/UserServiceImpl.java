@@ -45,7 +45,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         //3.符合，生成验证码
         String code = RandomUtil.randomNumbers(6);
         //4.保存验证码到redis
-        stringRedisTemplate.opsForValue().set("login:code" + phone,code,2, TimeUnit.MINUTES);
+        stringRedisTemplate.opsForValue().set("login:code:" + phone,code,2, TimeUnit.MINUTES);
         //5.发送验证码
         log.debug("发送验证码成功，验证码:{}",code);
         //返回ok
@@ -61,7 +61,7 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
             return Result.fail("手机号格式错误！");
         }
         //2.从redis中获取并校验验证码
-        String cacheCode = stringRedisTemplate.opsForValue().get("login:code" + phone);
+        String cacheCode = stringRedisTemplate.opsForValue().get("login:code:" + phone);
         String code = loginForm.getCode();
 
         if(cacheCode == null || !cacheCode.equals(code)){
@@ -83,10 +83,10 @@ public class UserServiceImpl extends ServiceImpl<UserMapper, User> implements IU
         UserDTO userDTO = BeanUtil.copyProperties(user, UserDTO.class);
         Map<String,Object> userMap = BeanUtil.beanToMap(userDTO,new HashMap<>(), CopyOptions.create().setIgnoreNullValue(true).setFieldValueEditor((fieldName,fieldValue) -> fieldValue.toString()));
         // 7.3.存储
-        stringRedisTemplate.opsForHash().putAll("login:token"+token,userMap);
+        stringRedisTemplate.opsForHash().putAll("login:token:"+token,userMap);
 
         //7.4设置token有效期
-        stringRedisTemplate.expire("login:token"+token,30, TimeUnit.MINUTES);
+        stringRedisTemplate.expire("login:token:"+token,30, TimeUnit.MINUTES);
 
         return Result.ok(token);
     }
