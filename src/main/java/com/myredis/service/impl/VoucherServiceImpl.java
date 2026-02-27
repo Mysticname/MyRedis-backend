@@ -7,6 +7,7 @@ import com.myredis.mapper.VoucherMapper;
 import com.myredis.entity.SeckillVoucher;
 import com.myredis.service.ISeckillVoucherService;
 import com.myredis.service.IVoucherService;
+import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,14 +19,15 @@ import java.util.List;
  *  服务实现类
  * </p>
  *
- * @author 虎哥
- * @since 2021-12-22
  */
 @Service
 public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> implements IVoucherService {
 
     @Resource
     private ISeckillVoucherService seckillVoucherService;
+
+    @Resource
+    private StringRedisTemplate stringRedisTemplate;
 
     @Override
     public Result queryVoucherOfShop(Long shopId) {
@@ -46,6 +48,10 @@ public class VoucherServiceImpl extends ServiceImpl<VoucherMapper, Voucher> impl
         seckillVoucher.setStock(voucher.getStock());
         seckillVoucher.setBeginTime(voucher.getBeginTime());
         seckillVoucher.setEndTime(voucher.getEndTime());
+        seckillVoucherService.save(seckillVoucher);
+
+        //把秒杀信息写入缓存，否则执行seckill.lua的时候找不到缓存，导致与空值比较从而报错
+        stringRedisTemplate.opsForValue().set("seckill:stock:" + voucher.getId(), voucher.getStock().toString());
         seckillVoucherService.save(seckillVoucher);
     }
 }
